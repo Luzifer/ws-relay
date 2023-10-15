@@ -81,10 +81,13 @@ func (s *socketPool) Unregister(name, connID string) {
 		return
 	}
 
-	s.pool[name][connID].Close()
+	logger := logrus.
+		WithFields(logrus.Fields{"id": connID, "socket": name})
+
+	if err := s.pool[name][connID].Close(); err != nil {
+		logger.WithError(err).Error("closing socket connection (leaked fd)")
+	}
 	delete(s.pool[name], connID)
 
-	logrus.
-		WithFields(logrus.Fields{"id": connID, "socket": name}).
-		Info("unregistered socket")
+	logger.Info("unregistered socket")
 }

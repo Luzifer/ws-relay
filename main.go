@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
@@ -13,6 +14,8 @@ import (
 
 	"github.com/Luzifer/rconfig/v2"
 )
+
+const websocketBufferSize = 1024
 
 var (
 	cfg = struct {
@@ -23,8 +26,8 @@ var (
 
 	upgrader = websocket.Upgrader{
 		CheckOrigin:     func(r *http.Request) bool { return true },
-		ReadBufferSize:  1024,
-		WriteBufferSize: 1024,
+		ReadBufferSize:  websocketBufferSize,
+		WriteBufferSize: websocketBufferSize,
 	}
 
 	version = "dev"
@@ -34,11 +37,6 @@ func initApp() error {
 	rconfig.AutoEnv(true)
 	if err := rconfig.ParseAndValidate(&cfg); err != nil {
 		return errors.Wrap(err, "parsing cli options")
-	}
-
-	if cfg.VersionAndExit {
-		fmt.Printf("ws-relay %s\n", version)
-		os.Exit(0)
 	}
 
 	l, err := logrus.ParseLevel(cfg.LogLevel)
@@ -56,13 +54,24 @@ func main() {
 		logrus.WithError(err).Fatal("initializing app")
 	}
 
+	if cfg.VersionAndExit {
+		fmt.Printf("ws-relay %s\n", version) //nolint:forbidigo
+		os.Exit(0)
+	}
+
 	logrus.WithField("version", version).Info("ws-relay started")
 
 	router := mux.NewRouter()
 	router.HandleFunc("/{socket}", handleSocketRelay)
 
-	if err := http.ListenAndServe(cfg.Listen, router); err != nil {
-		logrus.WithError(err).Fatal("http server errored")
+	server := &http.Server{
+		Addr:              cfg.Listen,
+		Handler:           router,
+		ReadHeaderTimeout: time.Second,
+	}
+
+	if err = server.ListenAndServe(); err != nil {
+		logrus.WithError(err).Fatal("running HTTP server")
 	}
 }
 
@@ -78,7 +87,11 @@ func handleSocketRelay(w http.ResponseWriter, r *http.Request) {
 		logrus.WithError(err).Error("upgrading socket")
 		return
 	}
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			logrus.WithError(err).Error("closing socket connection (leaked fd)")
+		}
+	}()
 
 	var (
 		socketName         = mux.Vars(r)["socket"]
