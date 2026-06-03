@@ -4,7 +4,7 @@ import (
 	"path"
 	"sync"
 
-	"github.com/gofrs/uuid"
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
 )
@@ -30,7 +30,7 @@ func (s *socketPool) Register(name string, conn *websocket.Conn) (string, func()
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	connID := uuid.Must(uuid.NewV4()).String()
+	connID := uuid.New().String()
 
 	if s.pool[name] == nil {
 		s.pool[name] = make(map[string]*websocket.Conn)

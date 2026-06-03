@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	github.com/Luzifer/rconfig/v2 v2.6.2
-	github.com/gofrs/uuid v4.4.0+incompatible
+	github.com/google/uuid v1.6.0
 	github.com/gorilla/mux v1.8.1
 	github.com/gorilla/websocket v1.5.3
 	github.com/sirupsen/logrus v1.9.4
