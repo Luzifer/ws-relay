@@ -1,13 +1,12 @@
 module github.com/Luzifer/ws-relay
 
-go 1.21
+go 1.26.0
 
 require (
 	github.com/Luzifer/rconfig/v2 v2.4.0
 	github.com/gofrs/uuid v4.4.0+incompatible
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/websocket v1.5.0
-	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.9.3
 )
 

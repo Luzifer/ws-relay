@@ -1,32 +1,35 @@
-FROM golang:alpine as builder
+FROM golang:1.26.4-alpine AS builder
 
-COPY . /go/src/github.com/Luzifer/ws-relay
-WORKDIR /go/src/github.com/Luzifer/ws-relay
+COPY . /go/src/ws-relay
+WORKDIR /go/src/ws-relay
 
-RUN set -ex \
- && apk add --update \
-      build-base \
-      git \
- && go install \
-      -ldflags "-X main.version=$(git describe --tags --always || echo dev)" \
-      -mod=readonly \
-      -modcacherw \
-      -trimpath
+ENV CGO_ENABLED=0
+
+RUN <<-EOF
+  set -ex
+
+  apk add --update \
+    build-base \
+    git
+
+  install -dm0755 /rootfs/usr/bin
+
+  go build \
+    -ldflags "-X main.version=$(git describe --tags --always || echo dev)" \
+    -mod=readonly \
+    -modcacherw \
+    -trimpath \
+    -o /rootfs/usr/bin/ws-relay
+EOF
 
 
-FROM alpine:latest
+FROM scratch
 
-LABEL maintainer "Knut Ahlers <knut@ahlers.me>"
+LABEL org.opencontainers.image.authors="Knut Ahlers" \
+      org.opencontainers.image.source="https://github.com/Luzifer/ws-relay" \
+      org.opencontainers.image.title="ws-relay"
 
-RUN set -ex \
- && apk --no-cache add \
-      ca-certificates
-
-COPY --from=builder /go/bin/ws-relay /usr/local/bin/ws-relay
+COPY --from=builder /rootfs/ /
 
 EXPOSE 3000
-
-ENTRYPOINT ["/usr/local/bin/ws-relay"]
-CMD ["--"]
-
-# vim: set ft=Dockerfile:
+ENTRYPOINT ["/usr/bin/ws-relay"]

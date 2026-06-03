@@ -1,3 +1,4 @@
+// ws-relay webservice
 package main
 
 import (
@@ -7,12 +8,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Luzifer/rconfig/v2"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-
-	"github.com/Luzifer/rconfig/v2"
 )
 
 const websocketBufferSize = 1024
@@ -25,7 +24,7 @@ var (
 	}{}
 
 	upgrader = websocket.Upgrader{
-		CheckOrigin:     func(r *http.Request) bool { return true },
+		CheckOrigin:     func(*http.Request) bool { return true },
 		ReadBufferSize:  websocketBufferSize,
 		WriteBufferSize: websocketBufferSize,
 	}
@@ -36,12 +35,12 @@ var (
 func initApp() error {
 	rconfig.AutoEnv(true)
 	if err := rconfig.ParseAndValidate(&cfg); err != nil {
-		return errors.Wrap(err, "parsing cli options")
+		return fmt.Errorf("parsing cli options: %w", err)
 	}
 
 	l, err := logrus.ParseLevel(cfg.LogLevel)
 	if err != nil {
-		return errors.Wrap(err, "parsing log-level")
+		return fmt.Errorf("parsing log-level: %w", err)
 	}
 	logrus.SetLevel(l)
 
@@ -55,7 +54,7 @@ func main() {
 	}
 
 	if cfg.VersionAndExit {
-		fmt.Printf("ws-relay %s\n", version) //nolint:forbidigo
+		fmt.Printf("ws-relay %s\n", version) //nolint:forbidigo // Printing version to stdout is fine
 		os.Exit(0)
 	}
 

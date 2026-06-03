@@ -9,8 +9,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var pool = newSocketPool()
-
 type (
 	socketPool struct {
 		lock      sync.RWMutex
@@ -18,6 +16,8 @@ type (
 		sendQueue *namedLocker
 	}
 )
+
+var pool = newSocketPool()
 
 func newSocketPool() *socketPool {
 	return &socketPool{
@@ -33,7 +33,7 @@ func (s *socketPool) Register(name string, conn *websocket.Conn) (string, func()
 	connID := uuid.Must(uuid.NewV4()).String()
 
 	if s.pool[name] == nil {
-		s.pool[name] = map[string]*websocket.Conn{}
+		s.pool[name] = make(map[string]*websocket.Conn)
 	}
 
 	s.pool[name][connID] = conn
