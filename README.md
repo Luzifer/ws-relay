@@ -1,9 +1,22 @@
-[![Go Report Card](https://goreportcard.com/badge/github.com/Luzifer/ws-relay)](https://goreportcard.com/report/github.com/Luzifer/ws-relay)
-![](https://badges.fyi/github/license/Luzifer/ws-relay)
-![](https://badges.fyi/github/downloads/Luzifer/ws-relay)
-![](https://badges.fyi/github/latest-release/Luzifer/ws-relay)
-![](https://knut.in/project-status/ws-relay)
+![](https://img.shields.io/github/license/Luzifer/ws-relay)
+![](https://img.shields.io/github/downloads/Luzifer/ws-relay/total)
+![](https://img.shields.io/github/v/release/Luzifer/ws-relay)
 
 # Luzifer / ws-relay
 
 This project is a very simple WebSocket relay service: No auth, no message parsing, just 1-n clients connecting to the same socket name receiving all messages sent to the socket.
+
+Clients connect to `/{socket}`. Every message received from one client on that socket name is forwarded to all currently connected clients on the same socket name.
+
+## Configuration
+
+- `--listen`: Port/IP to listen on, defaults to `:3000`
+- `--log-level`: Log level, defaults to `info`
+- `--max-message-size-bytes`: Maximum accepted WebSocket message size, defaults to `1048576` (1MiB); set to `0` to disable the limit
+- `--version`: Print the current version and exit
+
+## Security
+
+`ws-relay` is intentionally unauthenticated and accepts WebSocket connections from any origin. Socket names are therefore public channel names, not secrets or access controls. Any client that can reach the service can connect to a socket name and send messages to every other client on that same name.
+
+Do not expose this service to untrusted networks for private or integrity-sensitive traffic unless access is controlled elsewhere, for example with a reverse proxy, firewall rules, VPN, or another authentication layer. Keep `--max-message-size-bytes` enabled for internet-facing deployments to limit memory pressure from oversized messages; disabling it with `0` should be reserved for trusted environments with another payload limit in front of the service.
