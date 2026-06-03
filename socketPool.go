@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"maps"
 	"sync"
 	"time"
@@ -32,11 +33,15 @@ func newSocketPool() *socketPool {
 	}
 }
 
-func (s *socketPool) Register(name string, conn *websocket.Conn) (string, func()) {
+func (s *socketPool) Register(name string, conn *websocket.Conn, maxConns int) (string, func(), error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
 	connID := uuid.New().String()
+
+	if maxConns > 0 && len(s.pool[name]) >= maxConns {
+		return "", nil, fmt.Errorf("socket connection limit reached")
+	}
 
 	if s.pool[name] == nil {
 		s.pool[name] = make(map[string]*socketPoolEntry)
@@ -47,7 +52,7 @@ func (s *socketPool) Register(name string, conn *websocket.Conn) (string, func()
 		WithFields(logrus.Fields{"id": connID, "socket": name}).
 		Info("registered socket")
 
-	return connID, func() { s.Unregister(name, connID) }
+	return connID, func() { s.Unregister(name, connID) }, nil
 }
 
 func (s *socketPool) Send(name string, msgType int, msg []byte) {
@@ -101,6 +106,9 @@ func (s *socketPool) Unregister(name, connID string) {
 		logger.WithError(err).Error("closing socket connection (leaked fd)")
 	}
 	delete(s.pool[name], connID)
+	if len(s.pool[name]) == 0 {
+		delete(s.pool, name)
+	}
 
 	logger.Info("unregistered socket")
 }
