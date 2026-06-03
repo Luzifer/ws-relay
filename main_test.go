@@ -160,7 +160,7 @@ func newTestServerConn(t *testing.T) *websocket.Conn {
 	done := make(chan struct{})
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		conn, err := upgrader.Upgrade(w, r, nil)
-		require.NoError(t, err)
+		assert.NoError(t, err)
 
 		connC <- conn
 		<-done
