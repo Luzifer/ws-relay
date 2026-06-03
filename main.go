@@ -18,9 +18,10 @@ const websocketBufferSize = 1024
 
 var (
 	cfg = struct {
-		Listen         string `flag:"listen" default:":3000" description:"Port/IP to listen on"`
-		LogLevel       string `flag:"log-level" default:"info" description:"Log level (debug, info, warn, error, fatal)"`
-		VersionAndExit bool   `flag:"version" default:"false" description:"Prints current version and exits"`
+		Listen              string `flag:"listen" default:":3000" description:"Port/IP to listen on"`
+		LogLevel            string `flag:"log-level" default:"info" description:"Log level (debug, info, warn, error, fatal)"`
+		MaxMessageSizeBytes int64  `flag:"max-message-size-bytes" default:"1048576" description:"Maximum message size in Byte, zero to disable limits"`
+		VersionAndExit      bool   `flag:"version" default:"false" description:"Prints current version and exits"`
 	}{}
 
 	upgrader = websocket.Upgrader{
@@ -43,6 +44,10 @@ func initApp() error {
 		return fmt.Errorf("parsing log-level: %w", err)
 	}
 	logrus.SetLevel(l)
+
+	if cfg.MaxMessageSizeBytes < 0 {
+		return fmt.Errorf("max-message-size-bytes cannot be negative")
+	}
 
 	return nil
 }
@@ -86,6 +91,7 @@ func handleSocketRelay(w http.ResponseWriter, r *http.Request) {
 		logrus.WithError(err).Error("upgrading socket")
 		return
 	}
+	conn.SetReadLimit(cfg.MaxMessageSizeBytes)
 	defer func() {
 		if err := conn.Close(); err != nil {
 			logrus.WithError(err).Error("closing socket connection (leaked fd)")
